@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Models and Fields</title>
+</head>
+<body>
+    <ol>
+        {% for model in models %}
+            <li>{{ model.name }}</li>
+            <ul>
+                {% for field in model.fields %}
+                    <li>{{ field.name }} ({{ field.type }}) </li>
+                {% endfor %}
+            </ul>
+        {% endfor %}
+    </ol>
+</body>
+</html>
