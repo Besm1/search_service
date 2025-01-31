@@ -17,9 +17,15 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from search.views import dummy_page
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('search/', include('search.urls')),
-    path('', dummy_page)
+    path('', include('search.urls')),
+    # path('', dummy_page)
+    path("api/search/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/search/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger"),
+    path('api/search/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+
+
 ]
