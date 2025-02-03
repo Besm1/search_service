@@ -22,7 +22,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('search.urls')),
-    # path('', dummy_page)
+    path('initfields/', dummy_page),
     path("api/search/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/search/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger"),
     path('api/search/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),

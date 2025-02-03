@@ -1,20 +1,21 @@
-from pprint import pprint
-
+from django.contrib.postgres.fields import ArrayField
+from django.db.models import QuerySet, F, CharField
+from django.db.models.functions import Cast
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.apps import apps
-from django.db import models
 
 from rest_framework import generics
 from rest_framework.response import Response
 from .serializers import ProfileSearchSerializer
-import json
-
+from search_service.utilities import clean_phone_number, NormalizePhoneNumbers
 
 from .models import *
 from prof.models import *
-
+from .profiles_rating import arrange_candidates
 # Create your views here.
+
+
 
 class Profile_Field:
     def __init__(self, name:str, type_descr:str):
@@ -61,87 +62,107 @@ def dummy_page(request):
     # pprint(Fields.objects.all())
     return HttpResponse('Welcome to search service!')
 
+def update_rates(rates, profiles) -> dict:
+    curr_profiles = set(rates.keys())
+    new_profiles = set(profiles)
+    for p_ in curr_profiles - new_profiles: # удалим оценки лишних профилей
+        del rates[p_]
+    for p_ in curr_profiles & new_profiles: # увеличим оценки профилей, которые уже были и которые есть среди новых
+        rates[p_] += 1
+    for p_ in new_profiles - curr_profiles: # добавим оценки вновь появившихся профилей = 1
+        rates[p_] = 1
+    return rates
+
 
 class ProfileSearchView(generics.GenericAPIView):
     serializer_class = ProfileSearchSerializer
-
-    # def post(self, request, *args, **kwargs):
-        # # Получаем данные из тела запроса
-        # data = json.loads(request.body.decode("utf-8"))
-        #
-        # # Проверяем наличие необходимых полей
-        # required_fields = ["location", "skills"]
-        # for field in required_fields:
-        #     if field not in data:
-        #         return Response({"error": f"{field} is a required field."}, status=400)
-        #
-        # # Извлекаем значения полей
-        # locations = data.get("location")
-        # skills = data.get("skills")
-        #
-        # # Логика поиска кандидатов
-        # candidates = self.search_candidates(locations, skills)
-        #
-        # # Возвращаем результат в виде списка user_id
-        # response_data = {"candidates": candidates}
-        # return Response(response_data)
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        # Логика поиска кандидатов
-        # Фильтрация по местоположению
-        locations = data.get('location', [])
-        skills = data.get('skills', [])
+        profiles = ProfileProfile.objects.all()
+            # .annotate(phone_for_search=NormalizePhoneNumbers(Cast(F('phone'), output_field=ArrayField(CharField())))))
+        # Все профили. Их будем просеивать через фильтры поискового запроса
+        rates = dict({})
 
-        candidates = self.search_candidates(locations, skills)
+        search_keys = list(data.keys()) # отсортируем параметры запроса по приоритету, как он задан в настройках
+        search_keys.sort(key=lambda x: SearchParams.objects.get(name=x).priority)
+
+        for param in search_keys:
+
+            properties = SearchParams.objects.get(name=param) # свойства настройки параметра
+
+            if param == 'profile_id' and data.get('profile_id', []):
+                profiles = profiles.filter(user__in=data.get('profile_id', []))
+                rates = update_rates(rates, profiles) # {profile.id: rates[profile.id]+1 if rates[profile.id] else 1 for profile in profiles}
+
+            if param == 'username' and data.get('username', []):
+                profiles = profiles.filter(username__in=data.get('username', []))
+                rates = update_rates(rates, profiles)
+
+            if param == 'tg_nick' and data.get('tg_nick', []):
+                profiles = profiles.filter(tg_nick__in=data.get('tg_nick', []))
+                rates = update_rates(rates, profiles)
+
+            if param == 'email' and data.get('email', []):
+                profiles = profiles.filter(email__in=data.get('email', []))
+                rates = update_rates(rates, profiles)
+
+            if param == 'last_name' and data.get('last_name', []):
+                profiles = profiles.filter(email__in=data.get('last_name', []))
+                rates = update_rates(rates, profiles)
+
+            if param == 'first_name' and data.get('first_name', []):
+                profiles = profiles.filter(email__in=data.get('first_name', []))
+                rates = update_rates(rates, profiles)
+
+            if param == 'phone':
+                profiles = profiles.filter(phone__contains=clean_phone_number(data.get('phone', [])))
+                rates = update_rates(rates, profiles)
+
+            if param =='location':
+                profiles = profiles.filter(location__in=data.get('location', []))
+                rates = update_rates(rates, profiles)
+
+
+            # Поиск кандидатов с необходимыми навыками
+            candidate_ids = set()
+            for profile in profiles:
+                # user_skills = ProfileUserskill.objects.filter(user=profile, skill_name__in=skills).values_list('skill_name',
+                user_skills = ProfileUserskill.objects.filter(user=profile).values_list('skill_name', flat=True)
+
+                # Если все требуемые навыки найдены, добавляем кандидата в результат
+                if set(data.get('skill', [])).issubset(set(user_skills)):
+                    candidate_ids.add(profile.id)
+
+            # Добавляем фильтрацию по образованию, если она указана
+            if param == 'college':
+                colleges = data.get('college', [])
+
+                filtered_profiles = []
+                for candidate_id in candidate_ids:
+                    profile_education = ProfileEducationuser.objects.filter(
+                        user=candidate_id,
+                        college__in=colleges
+                    )
+                    if profile_education.exists():
+                        filtered_profiles.append(candidate_id)
+
+                candidate_ids = filtered_profiles
 
         # Возвращаем результат в виде списка user_id
-        response_data = {"candidates": candidates}
+        response_data = {"candidates": list(candidate_ids)}
         return Response(response_data)
 
+class Profile_Rate(generics.GenericAPIView):
+    serializer_class = ProfileSearchSerializer
 
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid(raise_exception=True):
+            return Response({"error": "Invalid search parameters"})
+        search_request = serializer.validated_data
 
-    def search_candidates(self, locations, skills, education=None):
-        """
-        Метод для поиска кандидатов по заданным параметрам
-        :param locations: Список городов, где должны находиться кандидаты
-        :param skills: Список требуемых навыков
-        :param education: Словарь с требованиями к образованию
-        :return: Список user_id подходящих кандидатов
-        """
-        # Поиск кандидатов по местоположению
-        profiles = ProfileProfile.objects.all()
-        if locations:
-            profiles = profiles.filter(location__in=locations)
-
-        # Поиск кандидатов с необходимыми навыками
-        candidate_ids = set()
-        for profile in profiles:
-            user_skills = ProfileUserskill.objects.filter(user=profile, skill_name__in=skills).values_list('skill_name',
-                                                                                                           flat=True)
-
-            # Если все требуемые навыки найдены, добавляем кандидата в результат
-            if set(skills).issubset(set(user_skills)):
-                candidate_ids.add(profile.id)
-
-        # Добавляем фильтрацию по образованию, если она указана
-        if education:
-            specialities = education.get('specialities')
-            colleges = education.get('colleges')
-
-            filtered_profiles = []
-            for candidate_id in candidate_ids:
-                profile_education = ProfileEducationuser.objects.filter(
-                    user=candidate_id,
-                    speciality__in=specialities,
-                    college__in=colleges
-                )
-                if profile_education.exists():
-                    filtered_profiles.append(candidate_id)
-
-            candidate_ids = filtered_profiles
-
-        return list(candidate_ids)
+        return Response(arrange_candidates(search_request))

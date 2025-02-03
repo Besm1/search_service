@@ -3,7 +3,7 @@ from django.contrib import admin
 # Register your models here.
 from .models import *
 from .views import Profile_Model, Profile_Field, get_models_list
-from .Generate_FakeData import generate_fake_data
+from .generate_fakedata import generate_fake_data
 
 
 def import_profile_fields(modeladmin, request, queryset):
@@ -17,9 +17,10 @@ def import_profile_fields(modeladmin, request, queryset):
 admin.site.register(Settings)
 
 
-@admin.register(Fields)
-class FieldsAdmin(admin.ModelAdmin):
-    actions = [import_profile_fields
-               , generate_fake_data]
+@admin.register(SearchParams)
+class SearchParamsAdmin(admin.ModelAdmin):
+    actions = [                 # import_profile_fields ,
+               generate_fake_data
+              ]
 
 
