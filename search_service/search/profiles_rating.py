@@ -1,6 +1,6 @@
 import re
 
-from django.db.models import Q, F
+from django.db.models import Q
 from prof.models import ProfileProfile, ProfileEducationuser, ProfilePersonalquality, ProfilePlaceofworkuser, \
     ProfileUserskill, ProfileUserspecialization
 from .models import SearchParams

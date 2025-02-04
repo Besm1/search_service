@@ -4,10 +4,13 @@ from django.apps import apps
 
 from rest_framework import generics
 from rest_framework.response import Response
+
 from .serializers import ProfileSearchSerializer
 
 from .profiles_rating import arrange_candidates
+from .utilities import check_params
 # Create your views here.
+
 
 class Profile_Rate(generics.GenericAPIView):
     serializer_class = ProfileSearchSerializer
@@ -15,7 +18,11 @@ class Profile_Rate(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid(raise_exception=True):
-            return Response({"error": "Invalid search parameters"})
-        search_request = serializer.validated_data
+            return Response({"Ошибка": "Неверные параметры поискового запроса."})
+        search_params = serializer.validated_data
 
-        return Response(arrange_candidates(search_request))
+        err = check_params(search_params)
+        if err != '':
+            return Response({"Ошибка в параметрах": err})
+
+        return Response(arrange_candidates(search_params))

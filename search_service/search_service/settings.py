@@ -130,7 +130,7 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Profiles Search API',
-    'DESCRIPTION': 'API для поиска профилей',
+    'DESCRIPTION': 'API подбора кандидатов по различным параметрам личного профиля.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
