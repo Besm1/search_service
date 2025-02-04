@@ -65,7 +65,7 @@ def calculate_candidate_rating(candidate_profile, search_params):
 
         total_rating += score * weights[param]
 
-    return round( (100 * total_rating / max_rating) + 0.5, 0)
+    return round( (100 * total_rating / max_rating) , 0)
 
 def arrange_candidates(search_params):
     candidates = ProfileProfile.objects.all().prefetch_related(
