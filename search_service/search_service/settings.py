@@ -91,7 +91,7 @@ DATABASES = {
         "HOST": "localhost",
         "PORT": "5432",
     },
-    "profile":  {
+    "prof":  {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": 'profile_service',
         "USER": 'postgres',
