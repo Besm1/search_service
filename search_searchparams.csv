@@ -1,0 +1,17 @@
+17,profile_id,t,5,EQUAL,ANY,10
+11,tg_nick,t,5,EQUAL,ANY,30
+12,email,t,5,EQUAL,ANY,40
+15,phone,t,5,SUBSTR,ANY,50
+10,last_name,t,5,EQUAL,ANY,60
+14,location,t,5,EQUAL,ANY,70
+9,first_name,t,5,EQUAL,ANY,80
+2,college,t,5,SUBSTR,ANY,90
+3,speciality,t,5,SUBSTR,ANY,100
+6,company,t,5,SUBSTR,ANY,110
+7,position,t,5,SUBSTR,ANY,120
+13,gender,t,5,EQUAL,ANY,130
+16,specialization,t,5,EQUAL,ANY,140
+4,age,t,5,AGE,ANY,150
+5,pers_quality,t,5,SUBSTR,ALL,160
+1,skill,t,5,EQUAL,ALL,170
+8,username,t,5,EQUAL,ANY,20

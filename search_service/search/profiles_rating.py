@@ -7,28 +7,69 @@ from .models import SearchParams
 from search.utilities import calculate_age, clean_phone_number, normalize_string
 
 
-def calculate_candidate_rating(candidate_profile, search_params):
-    # Инициализация переменных
-    total_rating = 0.0
+class DoesNotExist(Exception):
+    def __init__(self, message, extra_info):
+        self.message = message
+        self.extra_info = extra_info
+
+
+def arrange_candidates(search_params):
+    candidates = ProfileProfile.objects.all().prefetch_related(
+        'profileeducationuser_set',
+        'profilepersonalquality',
+        'profileplaceofworkuser_set',
+        'profileuserskill_set',
+        'profileuserspecialization_set'
+    ).distinct()        #.filter(phone__in=["001-940-715-2617x344","607-997-9715x37017"])
+
     weights = {}
     max_rating = 0.0
 
+    p_properties = SearchParams.objects.filter(enabled=True)
+
     # Получение весов параметров
     for param, values in search_params.items():
+
         if not isinstance(values, list) or len(values) == 0:
             continue
 
+        # rec = p_properties.filter(name=param).first()
+        # if rec:
+        #     weights[param] = rec.weight
+        #     max_rating += weights[param]
+        # else:
+        #     weights[param] = 0
         try:
             weights[param] = SearchParams.objects.get(name=param).weight
         except SearchParams.DoesNotExist:
-            weights[param] = 1.0
+            print(f'В таблице SearchParams не найдено описание параметра {param}.')
+            weights[param] = 0
+        else:
+            max_rating += weights[param]
 
-        max_rating += weights[param]
 
+    results = []
+    if max_rating > 0:
+        for candidate in candidates:
+            score = calculate_candidate_rating(candidate, search_params, weights, max_rating)
+            if score > 0:
+                results.append((candidate.id, score))
 
+        # Сортируем результаты по убыванию оценки
+        sorted_results = sorted(results, key=lambda x: x[1], reverse=True)
+
+        return [(id_, score) for id_, score in sorted_results]
+    else:
+        return []
+
+def calculate_candidate_rating(candidate_profile, search_params, weights, max_rating):
+    # Инициализация переменных
+    total_rating = 0.0
 
     # Расчет оценки по каждому параметру
     for param, values in search_params.items():
+        if weights[param] == 0:
+            continue
         if param == 'skill' and values:
             skills_count = (ProfileUserskill.objects.filter(user=candidate_profile)
                             .annotate(norm_skill=normalize_string('skill_name'))
@@ -66,23 +107,3 @@ def calculate_candidate_rating(candidate_profile, search_params):
         total_rating += score * weights[param]
 
     return round( (100 * total_rating / max_rating) , 0)
-
-def arrange_candidates(search_params):
-    candidates = ProfileProfile.objects.all().prefetch_related(
-        'profileeducationuser_set',
-        'profilepersonalquality',
-        'profileplaceofworkuser_set',
-        'profileuserskill_set',
-        'profileuserspecialization_set'
-    ).distinct()        #.filter(phone__in=["001-940-715-2617x344","607-997-9715x37017"])
-
-    results = []
-    for candidate in candidates:
-        score = calculate_candidate_rating(candidate, search_params)
-        if score > 0:
-            results.append((candidate.id, score))
-
-    # Сортируем результаты по убыванию оценки
-    sorted_results = sorted(results, key=lambda x: x[1], reverse=True)
-
-    return [(id_, score) for id_, score in sorted_results]
