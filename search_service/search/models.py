@@ -24,14 +24,6 @@ class Settings(models.Model):
 #         constraints = [models.UniqueConstraint(fields=['model_name', 'field_name'], name='unique_model_and_field_name')]
 
 class SearchParams(models.Model):
-    SEARCH_TYPES = (('EQUAL', 'Совпадение'), ('SUBSTR', 'Поиск подстроки')
-                    , ('AGE', 'Попадание д.р. в нужный диапазон возрастов'))
-    MSEARCH_TYPES = (('ANY', 'Хотя бы одно качество входит в поисковый запрос')
-                    , ('ALL', 'Есть все качества из поискового запроса'))
-
-    priority = models.IntegerField(default=0)
     name = models.CharField(max_length=32, blank=True, unique=True)
     enabled = models.BooleanField(default=True)
     weight = models.FloatField(default=1, blank=True)
-    search_type = models.CharField(max_length=10, choices=SEARCH_TYPES,default='EQUAL')
-    mult_search_type = models.CharField(max_length=3, choices=MSEARCH_TYPES, default='ANY')

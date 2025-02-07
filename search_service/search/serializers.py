@@ -5,7 +5,7 @@ class ProfileSearchSerializer(serializers.Serializer):
     profile_id = serializers.ListField(child=serializers.CharField(),required=False
                     , help_text = "Список UUID идентификаторов профилей.")
     location = serializers.ListField(child=serializers.CharField(), required=False
-                                    , help_text="Список желаемых городов проживания.")
+                                    , help_text="Список желаемых стран/городов/регионов проживания.")
     age  = serializers.ListField(child=serializers.IntegerField(), required=False,
         help_text="Возраст (в годах). Задаётся двумя границами диапазона, верхняя может быть опущена.")
     username = serializers.ListField(child=serializers.CharField(), required=False,
