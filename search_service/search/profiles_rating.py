@@ -33,12 +33,6 @@ def arrange_candidates(search_params):
         if not isinstance(values, list) or len(values) == 0:
             continue
 
-        # rec = p_properties.filter(name=param).first()
-        # if rec:
-        #     weights[param] = rec.weight
-        #     max_rating += weights[param]
-        # else:
-        #     weights[param] = 0
         try:
             weights[param] = p_properties.get(name=param).weight
         except SearchParams.DoesNotExist:
@@ -46,7 +40,6 @@ def arrange_candidates(search_params):
             weights[param] = 0
         else:
             max_rating += weights[param]
-
 
     results = []
     if max_rating > 0:
