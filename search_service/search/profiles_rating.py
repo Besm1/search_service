@@ -40,7 +40,7 @@ def arrange_candidates(search_params):
         # else:
         #     weights[param] = 0
         try:
-            weights[param] = SearchParams.objects.get(name=param).weight
+            weights[param] = p_properties.get(name=param).weight
         except SearchParams.DoesNotExist:
             print(f'В таблице SearchParams не найдено описание параметра {param}.')
             weights[param] = 0
